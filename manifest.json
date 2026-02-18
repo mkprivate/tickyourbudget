@@ -1,12 +1,30 @@
 {
-  "name": "MrBudget",
-  "short_name": "MrBudget",
-  "description": "A simple checklist app to manage your budget and track recurring expenses.",
-  "id": ".",
-  "start_url": "index.html",
-  "display": "standalone",
-  "background_color": "#f7fafc",
-  "theme_color": "#667eea",
-  "orientation": "portrait-primary",
-  "icons": []
+    "name": "tickyourbudget",
+    "short_name": "tickyourbudget",
+    "description": "A lightweight, offline-first monthly budget checklist PWA",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#faf5ff",
+    "theme_color": "#a78bfa",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": [
+        "finance",
+        "productivity"
+    ],
+    "lang": "en",
+    "dir": "ltr"
 }
