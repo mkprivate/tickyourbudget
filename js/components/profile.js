@@ -1,7 +1,7 @@
 // js/components/profile.js — Profile management (CRUD)
 
 import { dbGetAll, dbAdd, dbPut, dbDelete, dbGetByIndex, STORES, dbClear } from '../db.js';
-import { createProfile } from '../models.js';
+import { createProfile, createCategory } from '../models.js';
 import { openModal, showConfirm } from './modal.js';
 import { showToast } from './toast.js';
 
@@ -292,6 +292,14 @@ async function ensureDefaultProfile() {
     const profile = createProfile('Personal');
     await dbAdd(STORES.PROFILES, profile);
     setActiveProfileId(profile.id);
+
+    // Auto-create a "General" default category
+    const category = createCategory({
+      profileId: profile.id,
+      name: 'General',
+      description: 'Default category',
+    });
+    await dbAdd(STORES.CATEGORIES, category);
   }
 }
 

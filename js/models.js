@@ -54,6 +54,7 @@ function createBudgetItem({
   description = '',
   frequency = FREQUENCY.MONTHLY,
   startDate,
+  endDate = null,
 }) {
   return {
     id: generateId(),
@@ -64,6 +65,7 @@ function createBudgetItem({
     description: description.trim(),
     frequency,
     startDate: startDate || new Date().toISOString().split('T')[0],
+    endDate: endDate || null,
   };
 }
 

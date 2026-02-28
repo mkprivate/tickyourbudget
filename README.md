@@ -4,25 +4,42 @@ A lightweight, offline-first Progressive Web App (PWA) for monthly budget tracki
 
 ## Features
 
+### Core
 - **Monthly Checklist** — View and check off transactions month by month
 - **Budget Item Templates** — Define recurring expenses with flexible frequencies (One Time, Weekly, Bi-Weekly, Monthly, Quarterly, Yearly)
+- **End Date Support** — Optionally set an end date on budget items to stop generating transactions after a certain date
 - **Categories & Sub-categories** — Organize budget items hierarchically
+- **Auto Default Category** — A "General" category is created automatically with new profiles
 - **Multiple Profiles** — Separate budgets for different contexts (Personal, Family, etc.)
+- **Currency Selection** — 20 currencies supported with auto-detection based on locale
 - **Transaction Snapshots** — Historical amounts are preserved even when budget items change
+
+### Insights
+- **Progress Bar** — Visual indicator of how much of the month's budget has been paid
+- **Donut Chart** — Category breakdown chart (toggle on/off) with color-coded legend
+- **Month-over-Month Comparison** — See how spending compares to the previous month
+
+### Productivity
+- **Search & Filter** — Filter transactions on the Home view or budget items on the Items view
+- **Keyboard Shortcuts** — Navigate tabs (`1`–`5`), switch months (`←` `→`), go to today (`T`), create new (`N`), search (`/`), help (`?`)
+- **CSV Export** — Download budget items as a `.csv` file alongside the existing JSON export
+
+### Design & Platform
 - **Dark/Light Theme** — Toggle between themes with system preference detection
+- **Mobile Optimized** — Keyboard overlap fix, responsive toasts, bottom navigation
 - **Offline-First** — Works without internet via Service Worker caching
-- **Data Portability** — Import/Export all data as JSON
+- **Data Portability** — Import/Export all data as JSON or CSV
 - **Installable** — Install as a native-like app on any device
 - **No Frameworks** — Built with pure HTML5, CSS3, and vanilla JavaScript
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | HTML5, CSS3, ES6+ Modules |
-| Storage | IndexedDB (client-side) |
-| PWA | Service Worker, Web App Manifest |
-| CI/CD | GitHub Actions → GitHub Pages |
+| Layer    | Technology                       |
+|----------|----------------------------------|
+| Frontend | HTML5, CSS3, ES6+ Modules        |
+| Storage  | IndexedDB (client-side)          |
+| PWA      | Service Worker, Web App Manifest |
+| CI/CD    | GitHub Actions → GitHub Pages    |
 
 ## Getting Started
 
@@ -84,8 +101,20 @@ Then open `http://localhost:8080` in your browser.
 
 - **Profile** — A distinct budget context
 - **Category** — Hierarchical labels (one level of nesting)
-- **Budget Item** — Recurring expense/income template
+- **Budget Item** — Recurring expense/income template with optional end date
 - **Transaction** — Snapshot instance of a budget item for a specific date
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `1`–`5` | Switch tabs (Home, Items, Categories, Data, Profiles) |
+| `←` `→` | Previous / next month (Home view) |
+| `T` | Jump to current month |
+| `N` | New item or category (context-aware) |
+| `/` | Focus the search bar |
+| `?` | Show shortcuts overlay |
+| `Esc` | Dismiss overlay or blur input |
 
 ## License
 

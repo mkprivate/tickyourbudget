@@ -126,6 +126,101 @@ async function init() {
       }
     });
 
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      // Skip if user is typing in an input/textarea/select
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        if (e.key === 'Escape') {
+          e.target.blur();
+        }
+        return;
+      }
+
+      // Skip if modal is open
+      if (document.querySelector('.modal-overlay') || document.querySelector('.confirm-dialog')) {
+        return;
+      }
+
+      const shortcutsOverlay = document.getElementById('shortcutsOverlay');
+
+      // Dismiss shortcuts overlay
+      if (e.key === 'Escape') {
+        if (!shortcutsOverlay.classList.contains('hidden')) {
+          shortcutsOverlay.classList.add('hidden');
+          return;
+        }
+      }
+
+      // Tab navigation: 1-5
+      const navKeys = { '1': 'viewHome', '2': 'viewItems', '3': 'viewCategories', '4': 'viewData', '5': 'viewProfiles' };
+      if (navKeys[e.key]) {
+        e.preventDefault();
+        const navItem = document.querySelector(`.nav-item[data-view="${navKeys[e.key]}"]`);
+        if (navItem) navItem.click();
+        return;
+      }
+
+      // Arrow keys for month navigation (Home view only)
+      if (e.key === 'ArrowLeft' && currentView === 'viewHome') {
+        e.preventDefault();
+        document.getElementById('btnPrevMonth').click();
+        return;
+      }
+      if (e.key === 'ArrowRight' && currentView === 'viewHome') {
+        e.preventDefault();
+        document.getElementById('btnNextMonth').click();
+        return;
+      }
+
+      // T = Today
+      if (e.key === 't' || e.key === 'T') {
+        if (currentView === 'viewHome') {
+          e.preventDefault();
+          document.getElementById('btnToday').click();
+        }
+        return;
+      }
+
+      // N = New item or category
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        if (currentView === 'viewItems') {
+          document.getElementById('fabAddItem').click();
+        } else if (currentView === 'viewCategories') {
+          document.getElementById('fabAddCategory').click();
+        }
+        return;
+      }
+
+      // / = Focus search
+      if (e.key === '/') {
+        e.preventDefault();
+        let searchInput = null;
+        if (currentView === 'viewHome') {
+          searchInput = document.getElementById('homeSearch');
+        } else if (currentView === 'viewItems') {
+          searchInput = document.getElementById('itemsSearch');
+        }
+        if (searchInput) searchInput.focus();
+        return;
+      }
+
+      // ? = Show keyboard shortcuts
+      if (e.key === '?') {
+        e.preventDefault();
+        shortcutsOverlay.classList.toggle('hidden');
+        return;
+      }
+    });
+
+    // Click outside shortcuts overlay to dismiss
+    document.getElementById('shortcutsOverlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        e.currentTarget.classList.add('hidden');
+      }
+    });
+
     console.log('tickyourbudget initialized');
   } catch (err) {
     console.error('Failed to initialize app:', err);

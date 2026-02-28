@@ -6,6 +6,9 @@ import {
   importData,
   dbClearAll,
   dbAdd,
+  getProfileBudgetItems,
+  getProfileCategories,
+  getTransactionsForMonth,
   STORES,
 } from '../db.js';
 import {
@@ -15,7 +18,7 @@ import {
 } from '../components/profile.js';
 import { openModal, showConfirm } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
-import { generateId, FREQUENCY } from '../models.js';
+import { generateId, FREQUENCY, formatCurrency, formatDate } from '../models.js';
 
 let onDataChange = null;
 
@@ -26,6 +29,7 @@ function setDataChangeCallback(cb) {
 function initDataView() {
   document.getElementById('btnCopyJson').addEventListener('click', handleCopyJson);
   document.getElementById('btnDownloadJson').addEventListener('click', handleDownloadJson);
+  document.getElementById('btnDownloadCsv').addEventListener('click', handleDownloadCsv);
   document.getElementById('btnImportFile').addEventListener('click', () => {
     document.getElementById('importFileInput').click();
   });
@@ -79,6 +83,57 @@ async function handleDownloadJson() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   showToast('Download started', 'success');
+}
+
+async function handleDownloadCsv() {
+  const profileId = getActiveProfileId();
+  if (!profileId) {
+    showToast('No profile selected', 'error');
+    return;
+  }
+
+  try {
+    const items = await getProfileBudgetItems(profileId);
+    const categories = await getProfileCategories(profileId);
+    const catMap = new Map(categories.map((c) => [c.id, c]));
+
+    // Build CSV
+    const headers = ['Name', 'Amount', 'Category', 'Frequency', 'Start Date', 'End Date', 'Description'];
+    const rows = items.map((item) => {
+      const catName = catMap.has(item.categoryId) ? catMap.get(item.categoryId).name : 'Uncategorized';
+      return [
+        csvEscape(item.name),
+        item.amount,
+        csvEscape(catName),
+        item.frequency,
+        item.startDate,
+        item.endDate || '',
+        csvEscape(item.description || ''),
+      ].join(',');
+    });
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tickyourbudget-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('CSV download started', 'success');
+  } catch (err) {
+    showToast(`CSV export failed: ${err.message}`, 'error');
+  }
+}
+
+function csvEscape(str) {
+  if (!str) return '';
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
 }
 
 async function handleImportFile(e) {

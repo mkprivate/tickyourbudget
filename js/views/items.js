@@ -23,12 +23,28 @@ function initItemsView() {
   document.getElementById('fabAddItem').addEventListener('click', () => {
     openItemForm();
   });
+
+  // Search filter
+  document.getElementById('itemsSearch').addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    const cards = document.querySelectorAll('#itemsContainer .card');
+    cards.forEach((card) => {
+      const title = card.querySelector('.card__title')?.textContent.toLowerCase() || '';
+      const amount = card.querySelector('.card__amount')?.textContent.toLowerCase() || '';
+      const badges = card.querySelector('.card__meta')?.textContent.toLowerCase() || '';
+      card.style.display = (!query || title.includes(query) || amount.includes(query) || badges.includes(query)) ? '' : 'none';
+    });
+  });
 }
 
 async function renderItems() {
   const profileId = getActiveProfileId();
   const container = document.getElementById('itemsContainer');
   const emptyState = document.getElementById('emptyItems');
+
+  // Clear search
+  const searchInput = document.getElementById('itemsSearch');
+  if (searchInput) searchInput.value = '';
 
   if (!profileId) {
     container.innerHTML = '';
@@ -65,6 +81,7 @@ async function renderItems() {
           <span class="badge badge--category">${escapeHTML(catName)}</span>
           <span class="badge badge--frequency">${item.frequency}</span>
           <span class="badge">From ${formatDate(item.startDate)}</span>
+          ${item.endDate ? `<span class="badge badge--end-date">Until ${formatDate(item.endDate)}</span>` : ''}
         </div>
         <div class="card__actions">
           <button class="btn-card-action btn-card-action--edit" data-action="edit">Edit</button>
@@ -168,6 +185,10 @@ async function openItemForm(existingItem = null) {
         </div>
       </div>
       <div class="form-group">
+        <label for="itemEndDate">End Date <small style="color:var(--text-muted);font-weight:400;">(optional)</small></label>
+        <input type="date" id="itemEndDate" value="${existingItem && existingItem.endDate ? existingItem.endDate : ''}">
+      </div>
+      <div class="form-group">
         <label for="itemDesc">Description</label>
         <input type="text" id="itemDesc" maxlength="200" value="${existingItem ? escapeAttr(existingItem.description || '') : ''}" placeholder="Optional notes">
       </div>
@@ -185,6 +206,7 @@ async function openItemForm(existingItem = null) {
     const categoryId = modal.overlay.querySelector('#itemCategory').value;
     const frequency = modal.overlay.querySelector('#itemFrequency').value;
     const startDate = modal.overlay.querySelector('#itemStartDate').value;
+    const endDate = modal.overlay.querySelector('#itemEndDate').value || null;
     const description = modal.overlay.querySelector('#itemDesc').value.trim();
 
     if (!name || !amount) {
@@ -200,6 +222,7 @@ async function openItemForm(existingItem = null) {
         categoryId,
         frequency,
         startDate,
+        endDate,
         description,
       };
       await dbPut(STORES.BUDGET_ITEMS, updated);
@@ -213,6 +236,7 @@ async function openItemForm(existingItem = null) {
         description,
         frequency,
         startDate,
+        endDate,
       });
       await dbAdd(STORES.BUDGET_ITEMS, item);
       showToast(`"${name}" added`, 'success');

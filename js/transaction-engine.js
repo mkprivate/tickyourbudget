@@ -25,6 +25,10 @@ function getOccurrencesInMonth(item, year, month) {
   // If startDate is after the end of the target month, no occurrences
   if (startDate > monthEnd) return [];
 
+  // If item has an endDate and it's before the start of the target month, no occurrences
+  const endDate = item.endDate ? new Date(item.endDate + 'T00:00:00') : null;
+  if (endDate && endDate < monthStart) return [];
+
   const dates = [];
 
   switch (item.frequency) {
@@ -103,6 +107,11 @@ function getOccurrencesInMonth(item, year, month) {
       }
       break;
     }
+  }
+
+  // Filter out occurrences after endDate
+  if (endDate) {
+    return dates.filter(d => new Date(d + 'T00:00:00') <= endDate);
   }
 
   return dates;
