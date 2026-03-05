@@ -1,10 +1,10 @@
 // js/views/home.js — Home View (Transactions checklist with chart + progress)
 
 import { getTransactionsForMonth, getProfileCategories, getProfileBudgetItems } from '../db.js';
-import { generateTransactionsForMonth, toggleTransactionStatus, updateTransactionAmount } from '../transaction-engine.js';
+import { generateTransactionsForMonth, toggleTransactionStatus, updateTransactionAmount, deleteTransaction } from '../transaction-engine.js';
 import { formatCurrency, formatDate, getMonthLabel, TX_STATUS } from '../models.js';
 import { getActiveProfileId } from '../components/profile.js';
-import { openModal } from '../components/modal.js';
+import { openModal, showConfirm } from '../components/modal.js';
 
 let currentYear, currentMonth;
 let lastCategoryTotals = null, lastTotal = 0;
@@ -258,9 +258,10 @@ function openEditAmountModal(txn) {
       <input type="number" id="editAmountInput" step="0.01" min="0" value="${txn.snapshotAmount}" required>
       <button type="submit" class="btn btn--primary" style="margin-top:16px">Save</button>
     </form>
+    <button type="button" id="btnDeleteTxn" class="btn btn--danger btn--sm" style="margin-top:12px;width:100%">Delete Transaction</button>
   `;
 
-  const { overlay, close } = openModal('Edit Amount', html);
+  const { overlay, close } = openModal('Edit Transaction', html);
   const input = overlay.querySelector('#editAmountInput');
   setTimeout(() => { input.focus(); input.select(); }, 100);
 
@@ -270,6 +271,18 @@ function openEditAmountModal(txn) {
     if (isNaN(newAmount) || newAmount < 0) return;
     await updateTransactionAmount(txn, newAmount);
     close();
+    renderHome();
+  });
+
+  overlay.querySelector('#btnDeleteTxn').addEventListener('click', async () => {
+    close();
+    const confirmed = await showConfirm(
+      'Delete Transaction',
+      `Delete "${escapeHTML(txn.snapshotName)}"? This won\u2019t affect the budget item.`,
+      { danger: true, okText: 'Delete' }
+    );
+    if (!confirmed) return;
+    await deleteTransaction(txn.id);
     renderHome();
   });
 }

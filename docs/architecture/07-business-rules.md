@@ -7,9 +7,9 @@
 **Flow:**
 1. Fetch all budget items for the profile.
 2. Fetch existing transactions for the target month (via compound index range query on `[profileId, startOfMonth]` to `[profileId, endOfMonth]`).
-3. Build a dedup set of `"budgetItemId|date"` from existing transactions.
-4. For each budget item, calculate occurrences in the month via `getOccurrencesInMonth()`.
-5. For each occurrence date not in the dedup set, create a new transaction with `status: "Pending"` and snapshot of current name/amount.
+3. Count existing transactions per `budgetItemId` for this month, and build a date-key set of `"budgetItemId|date"`.
+4. For each budget item, calculate expected occurrences in the month via `getOccurrencesInMonth()`.
+5. Compare existing count vs expected count. Only create new transactions if `existingCount < expectedOccurrences`. For each new occurrence date not already in the key set, create a transaction. This **count-based dedup** prevents duplicates when a budget item's start date is changed (the old transaction remains, and no new one is added since the count already satisfies the expected occurrences).
 6. Persist new transactions via `dbAdd()`.
 7. Return all transactions (existing + new) sorted by date ascending.
 
@@ -56,10 +56,17 @@ Flips `status` between `"Pending"` ↔ `"Paid"` and persists via `dbPut()`. Retu
 
 Sets `transaction.snapshotAmount` to the new value and persists via `dbPut()`. The source budget item is **NOT** touched — only this specific transaction's snapshot is changed.
 
+## 8.4b Transaction Deletion
+
+**Function:** `deleteTransaction(transactionId)`
+
+Deletes a single transaction from IndexedDB via `dbDelete()`. Does **NOT** affect the source budget item or other transactions.
+
 **UI flow:**
-1. User taps the amount on a checklist item (distinguished from the toggle area).
-2. A modal opens with a pre-filled number input.
-3. On submit, `updateTransactionAmount()` is called and `renderHome()` re-renders summaries, progress bar, and chart data.
+1. User taps the amount area on a checklist item → edit modal opens.
+2. Modal includes a “Delete Transaction” danger button at the bottom.
+3. Clicking it shows a confirm dialog.
+4. On confirm, the transaction is deleted and `renderHome()` re-renders.
 
 ## 8.5 Profile Isolation
 

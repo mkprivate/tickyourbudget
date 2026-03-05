@@ -10,6 +10,7 @@ import {
   getTransactionsForMonth,
   dbAdd,
   dbPut,
+  dbDelete,
   STORES,
 } from './db.js';
 
@@ -127,6 +128,9 @@ function formatDateISO(date) {
 /**
  * Generate (or reconcile) transactions for a given month.
  * - Creates new transactions for budget items that don't have one yet.
+ * - Uses count-based dedup: if a budget item already has enough transactions
+ *   for this month (matching expected occurrence count), no new ones are created.
+ *   This prevents duplicates when an item's start date is changed.
  * - Does NOT delete transactions for removed budget items (orphan preservation).
  * Returns the full list of transactions for the month.
  */
@@ -134,16 +138,24 @@ async function generateTransactionsForMonth(profileId, year, month) {
   const budgetItems = await getProfileBudgetItems(profileId);
   const existingTxns = await getTransactionsForMonth(profileId, year, month);
 
-  // Build a set of existing (budgetItemId + date) for dedup
-  const existingKeys = new Set(
-    existingTxns.map((t) => `${t.budgetItemId}|${t.date}`)
-  );
+  // Count existing transactions per budgetItemId for this month
+  const existingCountByItem = new Map();
+  const existingKeys = new Set();
+  for (const t of existingTxns) {
+    existingCountByItem.set(t.budgetItemId, (existingCountByItem.get(t.budgetItemId) || 0) + 1);
+    existingKeys.add(`${t.budgetItemId}|${t.date}`);
+  }
 
   const newTxns = [];
 
   for (const item of budgetItems) {
     const occurrences = getOccurrencesInMonth(item, year, month);
+    const existingCount = existingCountByItem.get(item.id) || 0;
+    // Only create if there are fewer existing transactions than expected occurrences
+    let remaining = occurrences.length - existingCount;
+
     for (const date of occurrences) {
+      if (remaining <= 0) break;
       const key = `${item.id}|${date}`;
       if (!existingKeys.has(key)) {
         const txn = createTransaction({
@@ -155,6 +167,7 @@ async function generateTransactionsForMonth(profileId, year, month) {
         });
         await dbAdd(STORES.TRANSACTIONS, txn);
         newTxns.push(txn);
+        remaining--;
       }
     }
   }
@@ -183,9 +196,18 @@ async function updateTransactionAmount(transaction, newAmount) {
   return transaction;
 }
 
+/**
+ * Delete a single transaction.
+ * Does NOT affect the source budget item or other transactions.
+ */
+async function deleteTransaction(transactionId) {
+  await dbDelete(STORES.TRANSACTIONS, transactionId);
+}
+
 export {
   getOccurrencesInMonth,
   generateTransactionsForMonth,
   toggleTransactionStatus,
   updateTransactionAmount,
+  deleteTransaction,
 };

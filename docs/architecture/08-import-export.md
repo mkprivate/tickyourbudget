@@ -22,11 +22,13 @@
 }
 ```
 
-## Export format (CSV — current profile budget items)
+## Export format (CSV — current profile complete data)
+
+One row per transaction, grouped by budget item. Items without transactions get a single row. Orphan transactions (deleted item) are appended.
 
 ```csv
-Name,Amount,Category,Frequency,Start Date,End Date,Description
-Netflix,15.99,Subscriptions,Monthly,2026-01-01,,Standard plan
+Profile,Category,Item Name,Item Amount,Frequency,Start Date,End Date,Description,Transaction Date,Transaction Status,Transaction Amount
+Personal,Subscriptions,Netflix,15.99,Monthly,2026-01-01,,Standard plan,2026-03-01,Paid,15.99
 ```
 
 ## Import validation rules (`importData()`)
@@ -39,6 +41,12 @@ The import function accepts both formats (single `profile` key or plural `profil
 | Category    | `id`, `profileId`, `name`                         | All must be truthy           |
 | Budget Item | `id`, `profileId`, `categoryId`, `name`, `amount` | All truthy; `amount != null` |
 | Transaction | `id`, `budgetItemId`, `profileId`, `date`         | All must be truthy           |
+
+### Profile name deduplication
+
+Before writing, `importData()` loads all existing profiles and builds a `name → id` map (case-insensitive). If an imported profile’s name matches an existing profile’s name but has a different `id`, the imported `id` is **remapped** to the existing profile’s `id`. All categories, budget items, and transactions referencing the old `id` are remapped accordingly. The duplicate profile record is **not** written.
+
+This prevents confusing duplicate profile names when importing data that was exported from another device or browser.
 
 Import uses `dbPut()` (upsert) — existing records with the same `id` are overwritten.
 

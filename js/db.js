@@ -213,7 +213,7 @@ async function exportAllData() {
   return { profiles, categories, budgetItems, transactions };
 }
 
-// Import data (validates & merges)
+// Import data (validates & merges, deduplicates profiles by name)
 async function importData(data) {
   if (!data || typeof data !== 'object') throw new Error('Invalid data format');
 
@@ -239,11 +239,39 @@ async function importData(data) {
       throw new Error('Invalid transaction: missing required fields');
   }
 
-  // Write to DB (put = upsert)
-  for (const p of profiles) await dbPut(STORES.PROFILES, p);
-  for (const c of categories) await dbPut(STORES.CATEGORIES, c);
-  for (const b of budgetItems) await dbPut(STORES.BUDGET_ITEMS, b);
-  for (const t of transactions) await dbPut(STORES.TRANSACTIONS, t);
+  // Build a map of existing profile names → ids for dedup
+  const existingProfiles = await dbGetAll(STORES.PROFILES);
+  const nameToId = new Map(existingProfiles.map(p => [p.name.toLowerCase(), p.id]));
+
+  // For each imported profile, if a profile with the same name exists,
+  // remap the imported id to the existing id so data merges into it.
+  const idRemap = new Map(); // oldImportedId → existingId
+  for (const p of profiles) {
+    const existingId = nameToId.get(p.name.trim().toLowerCase());
+    if (existingId && existingId !== p.id) {
+      idRemap.set(p.id, existingId);
+    }
+  }
+
+  // Apply remap to all records
+  function remap(id) { return idRemap.get(id) || id; }
+
+  for (const p of profiles) {
+    if (idRemap.has(p.id)) continue; // skip — already exists
+    await dbPut(STORES.PROFILES, p);
+  }
+  for (const c of categories) {
+    c.profileId = remap(c.profileId);
+    await dbPut(STORES.CATEGORIES, c);
+  }
+  for (const b of budgetItems) {
+    b.profileId = remap(b.profileId);
+    await dbPut(STORES.BUDGET_ITEMS, b);
+  }
+  for (const t of transactions) {
+    t.profileId = remap(t.profileId);
+    await dbPut(STORES.TRANSACTIONS, t);
+  }
 }
 
 export {

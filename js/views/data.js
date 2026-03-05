@@ -6,9 +6,6 @@ import {
   importData,
   dbClearAll,
   dbAdd,
-  getProfileBudgetItems,
-  getProfileCategories,
-  getTransactionsForMonth,
   STORES,
 } from '../db.js';
 import {
@@ -121,24 +118,64 @@ async function handleDownloadCsv() {
   }
 
   try {
-    const items = await getProfileBudgetItems(profileId);
-    const categories = await getProfileCategories(profileId);
-    const catMap = new Map(categories.map((c) => [c.id, c]));
+    const data = await exportProfileData(profileId);
+    if (!data) { showToast('No data to export', 'error'); return; }
 
-    // Build CSV
-    const headers = ['Name', 'Amount', 'Category', 'Frequency', 'Start Date', 'End Date', 'Description'];
-    const rows = items.map((item) => {
+    const { profile, categories, budgetItems, transactions } = data;
+    const catMap = new Map(categories.map((c) => [c.id, c]));
+    const itemMap = new Map(budgetItems.map((i) => [i.id, i]));
+
+    // Build a lookup: budgetItemId → transactions[]
+    const txnsByItem = new Map();
+    for (const t of transactions) {
+      if (!txnsByItem.has(t.budgetItemId)) txnsByItem.set(t.budgetItemId, []);
+      txnsByItem.get(t.budgetItemId).push(t);
+    }
+
+    // Collect orphan transactions (budget item deleted)
+    const knownItemIds = new Set(budgetItems.map(i => i.id));
+    const orphanTxns = transactions.filter(t => !knownItemIds.has(t.budgetItemId));
+
+    const headers = [
+      'Profile', 'Category', 'Item Name', 'Item Amount', 'Frequency',
+      'Start Date', 'End Date', 'Description',
+      'Transaction Date', 'Transaction Status', 'Transaction Amount'
+    ];
+
+    const rows = [];
+
+    // One row per transaction, grouped by item
+    for (const item of budgetItems) {
       const catName = catMap.has(item.categoryId) ? catMap.get(item.categoryId).name : 'Uncategorized';
-      return [
-        csvEscape(item.name),
-        item.amount,
-        csvEscape(catName),
-        item.frequency,
-        item.startDate,
-        item.endDate || '',
-        csvEscape(item.description || ''),
-      ].join(',');
-    });
+      const itemTxns = txnsByItem.get(item.id) || [];
+
+      if (itemTxns.length === 0) {
+        // Item with no transactions yet
+        rows.push([
+          csvEscape(profile.name), csvEscape(catName), csvEscape(item.name),
+          item.amount, item.frequency, item.startDate, item.endDate || '',
+          csvEscape(item.description || ''), '', '', ''
+        ].join(','));
+      } else {
+        for (const txn of itemTxns) {
+          rows.push([
+            csvEscape(profile.name), csvEscape(catName), csvEscape(item.name),
+            item.amount, item.frequency, item.startDate, item.endDate || '',
+            csvEscape(item.description || ''),
+            txn.date, txn.status, txn.snapshotAmount
+          ].join(','));
+        }
+      }
+    }
+
+    // Orphan transactions
+    for (const txn of orphanTxns) {
+      rows.push([
+        csvEscape(profile.name), '', csvEscape(txn.snapshotName),
+        '', '', '', '', '',
+        txn.date, txn.status, txn.snapshotAmount
+      ].join(','));
+    }
 
     const csv = [headers.join(','), ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

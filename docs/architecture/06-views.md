@@ -105,11 +105,11 @@ Text input with search icon, positioned at the top of the view (right after mont
 3. Toggles `.checked` CSS class on the element (instant visual feedback).
 4. Recalculates and updates summary bar totals and progress bar.
 
-**Amount edit:**
+**Amount edit / delete:**
 1. User taps the amount area (has a small pencil icon hint).
-2. Opens a modal with a pre-filled number input via `openEditAmountModal()`.
-3. On save, calls `updateTransactionAmount()` and re-renders the Home view.
-4. Only the transaction's `snapshotAmount` is changed — the source budget item is unaffected.
+2. Opens an "Edit Transaction" modal via `openEditAmountModal()` with a pre-filled number input and a "Delete Transaction" danger button.
+3. **Save:** calls `updateTransactionAmount()` and re-renders the Home view. Only the transaction's `snapshotAmount` is changed — the source budget item is unaffected.
+4. **Delete:** shows a confirm dialog → on confirm, calls `deleteTransaction()` and re-renders. The budget item is unaffected.
 
 **When checked:** Row gets `opacity: 0.65`, name gets `line-through`, check circle fills purple with white checkmark.
 
@@ -258,7 +258,7 @@ Delete: removes the category + all its children from IndexedDB.
 |-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Copy to Clipboard** | Copies the JSON preview textarea content. Uses `navigator.clipboard.writeText()` with `document.execCommand('copy')` fallback.                                                                                           |
 | **Download .json**    | Exports **all profiles** (not just current) as a Blob download. Filename: `tickyourbudget-YYYY-MM-DD.json`. Structure: `{ profiles: [...], categories: [...], budgetItems: [...], transactions: [...] }`.                |
-| **Download .csv**     | Exports current profile's budget items as CSV. Columns: Name, Amount, Category, Frequency, Start Date, End Date, Description. Filename: `tickyourbudget-YYYY-MM-DD.csv`. Values with commas/quotes are properly escaped. |
+| **Download .csv**     | Exports current profile’s complete data as CSV: profile name, categories, budget items, and all transactions. One row per transaction (grouped by item), plus rows for items with no transactions and orphan transactions. Columns: Profile, Category, Item Name, Item Amount, Frequency, Start Date, End Date, Description, Transaction Date, Transaction Status, Transaction Amount. |
 
 ### Import Section
 
