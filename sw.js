@@ -1,6 +1,7 @@
 // sw.js — Service Worker for tickyourbudget PWA
 
-const CACHE_NAME = 'tyb-cache-v1';
+const CACHE_VERSION = '2026-03-08T1';
+const CACHE_NAME = `tyb-cache-${CACHE_VERSION}`;
 const ASSETS = [
   '/',
   '/index.html',
@@ -46,28 +47,28 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch — cache-first strategy
+// Fetch — network-first strategy
+// Always fetches the latest from the network so users see the newest UI.
+// Falls back to cache only when offline.
 self.addEventListener('fetch', (event) => {
   // Only handle same-origin GET requests
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-
-      return fetch(event.request).then((response) => {
-        // Don't cache non-ok responses
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
+    fetch(event.request)
+      .then((response) => {
+        // Cache successful responses for offline fallback
+        if (response && response.status === 200 && response.type === 'basic') {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
         }
-
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseClone);
-        });
-
         return response;
-      });
-    })
+      })
+      .catch(() => {
+        // Network failed (offline) — serve from cache
+        return caches.match(event.request);
+      })
   );
 });

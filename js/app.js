@@ -122,15 +122,6 @@ async function init() {
       });
     }
 
-    // Fix mobile keyboard overlap: scroll focused inputs into view
-    document.addEventListener('focusin', (e) => {
-      if (e.target.matches('input, select, textarea')) {
-        setTimeout(() => {
-          e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 350);
-      }
-    });
-
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
       // Skip if user is typing in an input/textarea/select
